@@ -8,8 +8,12 @@ const cocok = (a, b) => {
 };
 
 export default async (req) => {
-  if (!process.env.ADMIN_PASSWORD || !cocok(req.headers.get('x-admin-password'), process.env.ADMIN_PASSWORD)) {
-    return json({ error: 'Password salah' }, 401);
+  const pw = (process.env.ADMIN_PASSWORD || '').trim();
+  if (!pw) {
+    return json({ error: 'Server belum membaca ADMIN_PASSWORD. Cek nama key di Netlify, lalu publish versi terbaru.' }, 500);
+  }
+  if (!cocok((req.headers.get('x-admin-password') || '').trim(), pw)) {
+    return json({ error: `Password salah (password di server terdiri dari ${pw.length} karakter)` }, 401);
   }
   if (req.method === 'GET') {
     const status = new URL(req.url).searchParams.get('status') || 'menunggu';
