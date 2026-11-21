@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Liga Netizen</title>
+<meta name="robots" content="noindex">
+<style>
+body{font-family:system-ui,sans-serif;background:#080f20;color:#e8eefc;margin:0;padding:24px;max-width:760px}
+h1{font-size:20px}input,button{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid #33415f;background:#101a33;color:inherit}
+button{cursor:pointer}.ok{background:#1E88E5;border-color:#1E88E5}.no{background:#5a1e2a;border-color:#5a1e2a}
+table{width:100%;border-collapse:collapse;margin-top:16px}td,th{padding:8px;border-bottom:1px solid #22304d;text-align:left}
+#info{margin-top:12px;color:#9fb0d0}
+</style></head><body>
+<h1>Admin Pemain Liga Netizen</h1>
+<input id="pw" type="password" placeholder="Password admin">
+<select id="st"><option value="aktif">Aktif</option><option value="menunggu">Menunggu</option><option value="ditolak">Nonaktif</option></select>
+<button onclick="muat()">Tampilkan</button>
+<div id="info"></div>
+<table id="tbl" hidden><thead><tr><th>Username</th><th>Platform</th><th>Daftar</th><th></th></tr></thead><tbody></tbody></table>
+<script>
+const api = '/.netlify/functions/admin';
+const pw = () => document.getElementById('pw').value;
+async function muat(){
+  const r = await fetch(api + '?status=' + document.getElementById('st').value, { headers: { 'x-admin-password': pw() } });
+  const d = await r.json();
+  const info = document.getElementById('info'), tbl = document.getElementById('tbl'), tb = tbl.querySelector('tbody');
+  if (!r.ok) { info.textContent = d.error; tbl.hidden = true; return; }
+  info.textContent = d.length + ' pemain. Klik username untuk cek profilnya, lalu nonaktifkan yang ternyata tidak follow.';
+  tb.innerHTML = '';
+  for (const p of d) {
+    const tr = document.createElement('tr');
+    const link = p.platform === 'tiktok' ? 'https://www.tiktok.com/@' + encodeURIComponent(p.username) : p.platform === 'instagram' ? 'https://www.instagram.com/' + encodeURIComponent(p.username) : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(p.username);
+    tr.innerHTML = '<td><a style="color:#8cc4ff" target="_blank" rel="noopener"></a></td><td></td><td></td>' +
+      '<td><button class="ok">Aktifkan</button> <button class="no">Nonaktifkan</button></td>';
+    const a = tr.querySelector('a'); a.href = link; a.textContent = '@' + p.username;
+    tr.children[1].textContent = p.platform;
+    tr.children[2].textContent = new Date(p.created_at).toLocaleString('id-ID');
+    tr.querySelector('.ok').onclick = () => ubah(p.id, 'aktif');
+    tr.querySelector('.no').onclick = () => ubah(p.id, 'ditolak');
+    tb.appendChild(tr);
+  }
+  tbl.hidden = false;
+}
+async function ubah(id, status){
+  await fetch(api, { method: 'POST', headers: { 'x-admin-password': pw(), 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }) });
+  muat();
+}
+</script></body></html>
